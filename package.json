@@ -1,19 +1,19 @@
 {
-  "name": "n8n-nodes-sonos",
-  "version": "1.1.2",
-  "description": "The n8n sonos node allows users to control their sonos system using n8n automation workflows.",
+  "name": "n8n-nodes-sonos-nicodeh",
+  "version": "1.0.0",
+  "description": "Fork of n8n-nodes-sonos by VonRehbergConsulting",
   "keywords": [
     "n8n-community-node-package"
   ],
   "license": "MIT",
   "homepage": "",
   "author": {
-    "name": "Christian Jeschke",
-    "email": "cjeschke@vonrehberg.consulting"
+    "name": "Nicolas Ho",
+    "email": "nicolas.ho.edu@gmail.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/VonRehbergConsulting/n8n-nodes-sonos.git"
+    "url": "https://github.com/NicodeH/n8n-nodes-sonos-new-features.git"
   },
   "main": "index.js",
   "scripts": {

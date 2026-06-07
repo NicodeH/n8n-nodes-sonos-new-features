@@ -10,11 +10,13 @@ import {
 } from 'n8n-workflow';
 import {
 	executeGroupAction,
+	getGroups,
 	groupAll,
 	loadFavorites,
 	loadHomeTheaterPlayback,
 	loadHouseholds,
 	loadPlayers,
+	loadAllGroups,
 	playAudioClip,
 	playFavorite,
 	setGroupVolume,
@@ -115,13 +117,40 @@ export class Sonos implements INodeType {
 						description: 'Starts the home theater playback',
 					},
 					{
-						name: 'Set TV Power State',
+						name: 'Set TV Power State TEST',
 						value: 'setTVPowerState',
 						description: 'Sets the TV power state',
+					},
+					{
+						name: 'Get All Groups',
+						value: 'getAllGroups',
+						description: 'Gather all the groups in the household',
 					},
 				],
 				default: '',
 				required: true,
+			},
+			{
+				displayName: 'Group',
+				name: 'group',
+				type: 'options' as NodePropertyTypes,
+				options: [
+					{
+						name: 'Default (first group)',
+						value: '',
+					},
+				],
+				default: '',
+				required: true,
+				displayOptions: {
+					show: {
+						action: ['play', 'pause', 'togglePlayPause', 'skipToNextTrack', 'skipToPreviousTrack'],
+					},
+				},
+				typeOptions: {
+					loadOptionsMethod: 'loadAllGroups',
+					loadOptionsDependsOn: ['household'],
+				},
 			},
 			{
 				displayName: 'Player',
@@ -158,7 +187,7 @@ export class Sonos implements INodeType {
 				},
 			},
 			{
-				displayName: 'Shuffe',
+				displayName: 'Shuffle',
 				name: 'shuffle',
 				type: 'boolean' as NodePropertyTypes,
 				default: true,
@@ -172,18 +201,6 @@ export class Sonos implements INodeType {
 			{
 				displayName: 'Repeat',
 				name: 'repeat',
-				type: 'boolean' as NodePropertyTypes,
-				default: true,
-				required: true,
-				displayOptions: {
-					show: {
-						action: ['playFavorite'],
-					},
-				},
-			},
-			{
-				displayName: 'Crossfade',
-				name: 'crossfade',
 				type: 'boolean' as NodePropertyTypes,
 				default: true,
 				required: true,
@@ -275,6 +292,8 @@ export class Sonos implements INodeType {
 			loadHouseholds,
 			loadFavorites,
 			loadPlayers,
+			loadAllGroups,
+
 		},
 	};
 
@@ -315,6 +334,13 @@ export class Sonos implements INodeType {
 				case 'setHomeTheaterOptions':
 					await setHomeTheaterOptions.call(this);
 					break;
+				case 'getAllGroups': {
+					const groups = await getGroups.call(this);
+					for (const group of groups) {
+						returnData.push(group as unknown as IDataObject);
+					}
+					return [this.helpers.returnJsonArray(returnData)];
+				}
 				default:
 					throw new NodeOperationError(this.getNode(), 'Unknown method or not implemented');
 			}

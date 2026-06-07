@@ -11,9 +11,17 @@ interface SonosItem {
 
 interface SonosResponse {
 	players?: SonosItem[];
-	groups?: SonosItem[];
+	groups?: SonosGroup[];
 	households?: SonosItem[];
 	items?: SonosItem[];
+}
+
+interface SonosGroup {
+	id: string;
+	name?: string;
+	coordinatorId: string;
+	playbackState: string;
+	playerIds?: string[];
 }
 
 export async function playAudioClip(this: IExecuteFunctions): Promise<void> {
@@ -53,13 +61,16 @@ export async function groupAll(this: IExecuteFunctions): Promise<void> {
 }
 
 export async function executeGroupAction(this: IExecuteFunctions, action: string): Promise<void> {
-	const firstGroupId = await getFirstGroup.call(this);
+	// Use the group selected by the user, or fall back to the first group
+	const selectedGroupId = this.getNodeParameter('group', 0, '') as string;
+	const groupId = selectedGroupId || await getFirstGroup.call(this);
+
 	const options: OptionsWithUri = {
 		headers: {
 			'Content-Type': 'application/json',
 		},
 		method: 'POST',
-		uri: 'https://api.ws.sonos.com/control/api/v1/groups/' + firstGroupId + '/playback/' + action,
+		uri: 'https://api.ws.sonos.com/control/api/v1/groups/' + groupId + '/playback/' + action,
 	};
 	await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
 }
@@ -170,22 +181,56 @@ export async function loadPlayers(
 	return returnData;
 }
 
-export async function getFirstGroup(
+
+
+// Function to get all groups in a household
+export async function getGroups(
 	this: ILoadOptionsFunctions | IExecuteFunctions,
-): Promise<string> {
+): Promise<SonosGroup[]> {
 	let data;
+ 
 	try {
 		const household = this.getNodeParameter('household', 0);
 		data = await callSonosApi.call(this, 'GET', `/households/${household}/groups`);
 	} catch (err) {
+		if (err.message === 'No credentials got returned!') {
+			return [];
+		}
 		throw new Error(`SONOS Error: ${err}`);
 	}
-
+ 
 	if (!data || !data.groups) {
-		return '';
+		return [];
 	}
+ 
+	return data.groups;
+}
 
-	return data.groups[0].id;
+// Function the first group id in the list
+export async function getFirstGroup(
+	this: ILoadOptionsFunctions | IExecuteFunctions,
+): Promise<string> {
+	const groups = await getGroups.call(this);
+	return groups[0]?.id || '';
+}
+
+// Function the last group id in the list
+export async function getLastGroup(
+	this: ILoadOptionsFunctions | IExecuteFunctions,
+): Promise<string> {
+	const groups = await getGroups.call(this);
+	return groups[groups.length - 1]?.id || '';
+}
+
+// Alias for getGroups - loads all groups in the household
+export async function loadAllGroups(
+	this: ILoadOptionsFunctions | IExecuteFunctions,
+): Promise<INodePropertyOptions[]> {
+	const groups = await getGroups.call(this);
+	return groups.map((group) => ({
+		name: group.name ?? group.id,
+		value: group.id,
+	}));
 }
 
 export async function loadHouseholds(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {

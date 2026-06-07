@@ -5,6 +5,8 @@ import {
 	loadPlayers,
 	getFirstGroup,
 	loadFavorites,
+	getLastGroup,
+	getGroups,
 } from '../../nodes/Sonos/GenericFunctions';
 import { readFile } from 'fs';
 import { OptionsWithUrl, RequestPromiseOptions } from 'request-promise-native';
@@ -98,6 +100,27 @@ describe('Sonos Node', () => {
 			const result = await getFirstGroup.call(optionsStub);
 
 			expect(result).toEqual('RINCON_1234567:1234');
+		});
+		it('Fetches the last group', async () => {
+			optionsStub.helpers.requestOAuth2 = jest
+				.fn()
+				.mockImplementation(() => readFileAsync('./test/Sonos/groups.response.json', 'utf-8'));
+			const result = await getLastGroup.call(optionsStub);
+
+			expect(result).toEqual('RINCON_1234567:1234');
+		});
+		it('Fetches all groups in a household', async () => {
+			optionsStub.helpers.requestOAuth2 = jest
+				.fn()
+				.mockImplementation(() => readFileAsync('./test/Sonos/groups.response.json', 'utf-8'));
+			const result = await getGroups.call(optionsStub);
+
+			expect(result.length).toEqual(1);
+			expect(result[0].id).toEqual('RINCON_1234567:1234');
+			expect(result[0].name).toEqual('Sonos Roam + 1');
+			expect(result[0].coordinatorId).toEqual('RINCON_1234567');
+			expect(result[0].playbackState).toEqual('PLAYBACK_STATE_IDLE');
+			expect(result[0].playerIds?.length).toEqual(3);
 		});
 		it('Fetches Sonos Favorites', async () => {
 			optionsStub.helpers.requestOAuth2 = jest

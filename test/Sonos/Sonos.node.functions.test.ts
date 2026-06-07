@@ -7,6 +7,7 @@ import {
 	loadFavorites,
 	getLastGroup,
 	getGroups,
+	loadGroups,
 } from '../../nodes/Sonos/GenericFunctions';
 import { readFile } from 'fs';
 import { OptionsWithUrl, RequestPromiseOptions } from 'request-promise-native';
@@ -20,11 +21,12 @@ const readFileAsync = promisify(readFile);
 
 describe('Sonos Node', () => {
 	let credentials: Map<string, ICredentialDataDecryptedObject>;
-	let nodeParameters: INodeParameters = {};
+	let nodeParameters: INodeParameters;
 	let optionsStub: ILoadOptionsFunctions;
 	let executeStub: IExecuteFunctions;
 	let node: Sonos;
 	beforeEach(() => {
+		nodeParameters = {};
 		credentials = new Map<string, ICredentialDataDecryptedObject>();
 		optionsStub = createMock<ILoadOptionsFunctions>({
 			getCredentials: (type: string) => Promise.resolve(credentials.get(type) as any),
@@ -93,6 +95,24 @@ describe('Sonos Node', () => {
 			expect(result[0].name).toEqual('Hometheater Arc');
 			expect(result[0].value).toEqual('RINCON_1234569');
 		});
+
+		it('Fetches members of the selected group for group actions', async () => {
+			optionsStub.helpers.requestOAuth2 = jest
+				.fn()
+				.mockImplementation(() => readFileAsync('./test/Sonos/groups.response.json', 'utf-8'));
+			nodeParameters.action = 'play';
+			nodeParameters.household = 'HOUSEHOLD_1';
+			nodeParameters.group = 'RINCON_1234567:1234';
+
+			const result = await loadPlayers.call(optionsStub);
+
+			expect(result.length).toEqual(2);
+			expect(result[0].name).toEqual('Sonos Roam');
+			expect(result[0].value).toEqual('RINCON_123456');
+			expect(result[1].name).toEqual('Sonos Move');
+			expect(result[1].value).toEqual('RINCON_1234567');
+		});
+
 		it('Fetches the first group', async () => {
 			optionsStub.helpers.requestOAuth2 = jest
 				.fn()
@@ -121,6 +141,19 @@ describe('Sonos Node', () => {
 			expect(result[0].coordinatorId).toEqual('RINCON_1234567');
 			expect(result[0].playbackState).toEqual('PLAYBACK_STATE_IDLE');
 			expect(result[0].playerIds?.length).toEqual(3);
+		});
+
+		it('Loads groups selection options including default, first, and last', async () => {
+			optionsStub.helpers.requestOAuth2 = jest
+				.fn()
+				.mockImplementation(() => readFileAsync('./test/Sonos/groups.response.json', 'utf-8'));
+			const result = await loadGroups.call(optionsStub);
+
+			expect(result.length).toEqual(4);
+			expect(result[0]).toEqual({ name: 'Default (First Group)', value: '' });
+			expect(result[1]).toEqual({ name: 'First Group', value: 'FIRST_GROUP' });
+			expect(result[2]).toEqual({ name: 'Last Group', value: 'LAST_GROUP' });
+			expect(result[3]).toEqual({ name: 'Sonos Roam + 1', value: 'RINCON_1234567:1234' });
 		});
 		it('Fetches Sonos Favorites', async () => {
 			optionsStub.helpers.requestOAuth2 = jest
@@ -207,10 +240,72 @@ describe('Sonos Node', () => {
 			);
 		});
 
+		it('Executes Group Action on a specific selected group', async () => {
+			nodeParameters['action'] = 'play';
+			let callOptions: OptionsWithUrl | any = {};
+			nodeParameters['household'] = 'HOUSEHOLD_1';
+			nodeParameters['group'] = 'RINCON_1234567:1234';
+			executeStub.helpers.requestOAuth2 = jest.fn().mockImplementation((...args: any[]) => {
+				callOptions = args[1];
+				return '{}';
+			});
+
+			const result = await node.execute.apply(executeStub);
+			const executionResponse = result[0][0] as any;
+			expect(executionResponse?.json[0].message).toEqual('ok');
+
+			expect(callOptions.uri).toEqual(
+				'https://api.ws.sonos.com/control/api/v1/groups/RINCON_1234567:1234/playback/play',
+			);
+		});
+
+		it('Executes Group Action on a selected player', async () => {
+			nodeParameters['action'] = 'play';
+			let callOptions: OptionsWithUrl | any = {};
+			nodeParameters['household'] = 'HOUSEHOLD_1';
+			nodeParameters['player'] = 'RINCON_1234568';
+			executeStub.helpers.requestOAuth2 = jest.fn().mockImplementation((...args: any[]) => {
+				callOptions = args[1];
+				return '{}';
+			});
+
+			const result = await node.execute.apply(executeStub);
+			const executionResponse = result[0][0] as any;
+			expect(executionResponse?.json[0].message).toEqual('ok');
+
+			expect(callOptions.uri).toEqual(
+				'https://api.ws.sonos.com/control/api/v1/players/RINCON_1234568/playback/play',
+			);
+		});
+
+		it('Executes Group Action on Last Group selection', async () => {
+			nodeParameters['action'] = 'play';
+			let callOptions: OptionsWithUrl | any = {};
+			nodeParameters['household'] = 'HOUSEHOLD_1';
+			nodeParameters['group'] = 'LAST_GROUP';
+			executeStub.helpers.requestOAuth2 = jest.fn().mockImplementation((...args: any[]) => {
+				callOptions = args[1];
+				if (callOptions.uri.endsWith('/groups')) {
+					return readFileAsync('./test/Sonos/groups.response.json', 'utf-8');
+				} else {
+					return '{}';
+				}
+			});
+
+			const result = await node.execute.apply(executeStub);
+			const executionResponse = result[0][0] as any;
+			expect(executionResponse?.json[0].message).toEqual('ok');
+
+			expect(callOptions.uri).toEqual(
+				'https://api.ws.sonos.com/control/api/v1/groups/RINCON_1234567:1234/playback/play',
+			);
+		});
+
 		it('Sets Group Volume', async () => {
 			nodeParameters['action'] = 'groupVolume';
 			let callOptions: OptionsWithUrl | any = {};
 			nodeParameters['household'] = 'HOUSEHOLD_1';
+			nodeParameters['volume'] = 50;
 			executeStub.helpers.requestOAuth2 = jest.fn().mockImplementation((...args: any[]) => {
 				callOptions = args[1];
 				if (callOptions.uri.endsWith('/groups')) {

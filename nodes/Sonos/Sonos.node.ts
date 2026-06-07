@@ -12,6 +12,7 @@ import {
 	executeGroupAction,
 	getGroups,
 	groupAll,
+	loadGroups,
 	loadAllGroups,
 	loadFavorites,
 	loadHomeTheaterPlayback,
@@ -66,35 +67,34 @@ export class Sonos implements INodeType {
 						description: 'Plays an audio file from a URL on one of your players',
 					},
 					{
-						name: 'Play',
+						name: 'Play in Group',
 						value: 'play',
-						description: 'Starts the music on the first group found in your Sonos system',
+						description: 'Starts playback on all members of the selected group, or first group by default. Selecting a player will target that player instead.',
 					},
 					{
-						name: 'Play Favorite',
+						name: 'Play Favorite in Group',
 						value: 'playFavorite',
-						description:
-							'Loads a Sonos favorite and plays it on the first group found in your Sonos system',
+						description: 'Loads a Sonos favorite and plays it on the first group found in your Sonos system',
 					},
 					{
-						name: 'Pause',
+						name: 'Pause in Group',
 						value: 'pause',
-						description: 'Stops the music on the first group found in your Sonos system',
+						description: 'Pauses playback on all members of the selected group, or first group by default. Selecting a player will target that player instead.',
 					},
 					{
-						name: 'Toggle Play/Pause',
+						name: 'Toggle Play/Pause in Group',
 						value: 'togglePlayPause',
-						description: 'Toggles the music on the first group found in your Sonos system',
+						description: 'Toggles playback on all members of the selected group, or first group by default. Selecting a player will target that player instead.',
 					},
 					{
-						name: 'Skip Song',
+						name: 'Skip Song in Group',
 						value: 'skipToNextTrack',
-						description: 'Skips the song on the first group found in your Sonos system',
+						description: 'Skips to the next track on all members of the selected group, or first group by default. Selecting a player will target that player instead.',
 					},
 					{
-						name: 'Previous Song',
+						name: 'Previous Song in Group',
 						value: 'skipToPreviousTrack',
-						description: 'Jumps to previous song on the first group found in your Sonos system',
+						description: 'Jumps to the previous song on all members of the selected group, or first group by default. Selecting a player will target that player instead.',
 					},
 					{
 						name: 'Group All Players',
@@ -104,7 +104,7 @@ export class Sonos implements INodeType {
 					{
 						name: 'Set Group Volume',
 						value: 'groupVolume',
-						description: 'Sets the volume of the first group in your system',
+						description: 'Sets the volume of the selected group, or first group by default',
 					},
 					{
 						name: 'Set Home Theater Options',
@@ -117,7 +117,7 @@ export class Sonos implements INodeType {
 						description: 'Starts the home theater playback',
 					},
 					{
-						name: 'Set TV Power State Test',
+						name: 'Set TV Power State',
 						value: 'setTVPowerState',
 						description: 'Sets the TV power state',
 					},
@@ -131,7 +131,7 @@ export class Sonos implements INodeType {
 				required: true,
 			},
 			{
-				displayName: 'Group',
+				displayName: 'Group / Member Selection',
 				name: 'group',
 				type: 'options' as NodePropertyTypes,
 				options: [
@@ -141,14 +141,15 @@ export class Sonos implements INodeType {
 					},
 				],
 				default: '',
-				required: true,
+				description:
+					'Select a group to target all its members, or leave empty to use the first group by default',
 				displayOptions: {
 					show: {
-						action: ['play', 'pause', 'togglePlayPause', 'skipToNextTrack', 'skipToPreviousTrack'],
+						action: ['play', 'pause', 'togglePlayPause', 'skipToNextTrack', 'skipToPreviousTrack', 'groupVolume'],
 					},
 				},
 				typeOptions: {
-					loadOptionsMethod: 'loadAllGroups',
+					loadOptionsMethod: 'loadGroups',
 					loadOptionsDependsOn: ['household'],
 				},
 			},
@@ -158,10 +159,20 @@ export class Sonos implements INodeType {
 				type: 'options' as NodePropertyTypes,
 				options: [],
 				default: '',
-				required: true,
+				description: 'For player-level actions, choose the target player. For playback actions, a player selection overrides the group.',
 				displayOptions: {
 					show: {
-						action: ['playAudioClip', 'setHomeTheaterOptions', 'loadHomeTheaterPlayback', 'setTVPowerState'],
+						action: [
+							'playAudioClip',
+							'setHomeTheaterOptions',
+							'loadHomeTheaterPlayback',
+							'setTVPowerState',
+							'play',
+							'pause',
+							'togglePlayPause',
+							'skipToNextTrack',
+							'skipToPreviousTrack',
+						],
 					},
 				},
 				typeOptions: {

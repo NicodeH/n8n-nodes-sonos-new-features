@@ -7,6 +7,7 @@ interface SonosItem {
 	name?: string;
 	description?: string;
 	capabilities: string[];
+	deviceIds?: string[];
 }
 
 interface SonosResponse {
@@ -23,6 +24,9 @@ interface SonosGroup {
 	playbackState: string;
 	playerIds?: string[];
 }
+
+const FIRST_GROUP = 'FIRST_GROUP';
+const LAST_GROUP = 'LAST_GROUP';
 
 export async function playAudioClip(this: IExecuteFunctions): Promise<void> {
 	const player = this.getNodeParameter('player', 0);
@@ -61,9 +65,27 @@ export async function groupAll(this: IExecuteFunctions): Promise<void> {
 }
 
 export async function executeGroupAction(this: IExecuteFunctions, action: string): Promise<void> {
+	const selectedPlayerId = this.getNodeParameter('player', 0, '') as string;
+	if (selectedPlayerId) {
+		const options: OptionsWithUri = {
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			method: 'POST',
+			uri: 'https://api.ws.sonos.com/control/api/v1/players/' + selectedPlayerId + '/playback/' + action,
+		};
+		await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+		return;
+	}
+
 	// Use the group selected by the user, or fall back to the first group
 	const selectedGroupId = this.getNodeParameter('group', 0, '') as string;
-	const groupId = selectedGroupId || await getFirstGroup.call(this);
+	let groupId = selectedGroupId || FIRST_GROUP;
+	if (groupId === FIRST_GROUP) {
+		groupId = await getFirstGroup.call(this);
+	} else if (groupId === LAST_GROUP) {
+		groupId = await getLastGroup.call(this);
+	}
 
 	const options: OptionsWithUri = {
 		headers: {
@@ -143,7 +165,11 @@ export async function loadPlayers(
 	this: ILoadOptionsFunctions | IExecuteFunctions,
 ): Promise<INodePropertyOptions[]> {
 	const returnData: INodePropertyOptions[] = [];
-	const action = this.getNodeParameter('action', 0);
+	const action = this.getNodeParameter('action', 0) as string;
+	const group = this.getNodeParameter('group', 0, '') as string;
+	const filterGroupMembers = ['play', 'pause', 'togglePlayPause', 'skipToNextTrack', 'skipToPreviousTrack'].includes(
+		action,
+	);
 
 	let data;
 	try {
@@ -156,7 +182,26 @@ export async function loadPlayers(
 		throw new Error(`SONOS Error: ${err}`);
 	}
 
+	let memberDeviceIds: string[] | undefined;
+	if (filterGroupMembers && data.groups) {
+		let selectedGroupId = group;
+		if (!selectedGroupId || selectedGroupId === FIRST_GROUP) {
+			selectedGroupId = data.groups[0]?.id || '';
+		} else if (selectedGroupId === LAST_GROUP) {
+			selectedGroupId = data.groups[data.groups.length - 1]?.id || '';
+		}
+		const selectedGroup = data.groups.find((groupItem) => groupItem.id === selectedGroupId);
+		memberDeviceIds = selectedGroup?.playerIds;
+	}
+
 	for (const player of data.players!) {
+		if (memberDeviceIds?.length) {
+			const isMember = player.deviceIds?.some((deviceId) => memberDeviceIds?.includes(deviceId));
+			if (!isMember) {
+				continue;
+			}
+		}
+
 		if (action === 'setHomeTheaterOptions' || action === 'loadHomeTheaterPlayback') {
 			if (player.capabilities.includes('HT_PLAYBACK')) {
 				returnData.push({
@@ -188,7 +233,7 @@ export async function getGroups(
 	this: ILoadOptionsFunctions | IExecuteFunctions,
 ): Promise<SonosGroup[]> {
 	let data;
- 
+
 	try {
 		const household = this.getNodeParameter('household', 0);
 		data = await callSonosApi.call(this, 'GET', `/households/${household}/groups`);
@@ -198,11 +243,11 @@ export async function getGroups(
 		}
 		throw new Error(`SONOS Error: ${err}`);
 	}
- 
+
 	if (!data || !data.groups) {
 		return [];
 	}
- 
+
 	return data.groups;
 }
 
@@ -227,10 +272,35 @@ export async function loadAllGroups(
 	this: ILoadOptionsFunctions | IExecuteFunctions,
 ): Promise<INodePropertyOptions[]> {
 	const groups = await getGroups.call(this);
-	return groups.map((group) => ({
-		name: group.name ?? group.id,
-		value: group.id,
-	}));
+	const returnData: INodePropertyOptions[] = [
+		{
+			name: 'Default (First Group)',
+			value: '',
+		},
+		{
+			name: 'First Group',
+			value: FIRST_GROUP,
+		},
+		{
+			name: 'Last Group',
+			value: LAST_GROUP,
+		},
+	];
+
+	returnData.push(
+		...groups.map((group) => ({
+			name: group.name ?? group.id,
+			value: group.id,
+		})),
+	);
+
+	return returnData;
+}
+
+export async function loadGroups(
+	this: ILoadOptionsFunctions | IExecuteFunctions,
+): Promise<INodePropertyOptions[]> {
+	return loadAllGroups.call(this);
 }
 
 export async function loadHouseholds(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {

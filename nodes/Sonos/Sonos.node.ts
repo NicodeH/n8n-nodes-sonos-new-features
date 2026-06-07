@@ -12,11 +12,11 @@ import {
 	executeGroupAction,
 	getGroups,
 	groupAll,
+	loadAllGroups,
 	loadFavorites,
 	loadHomeTheaterPlayback,
 	loadHouseholds,
 	loadPlayers,
-	loadAllGroups,
 	playAudioClip,
 	playFavorite,
 	setGroupVolume,
@@ -117,7 +117,7 @@ export class Sonos implements INodeType {
 						description: 'Starts the home theater playback',
 					},
 					{
-						name: 'Set TV Power State TEST',
+						name: 'Set TV Power State Test',
 						value: 'setTVPowerState',
 						description: 'Sets the TV power state',
 					},
@@ -136,7 +136,7 @@ export class Sonos implements INodeType {
 				type: 'options' as NodePropertyTypes,
 				options: [
 					{
-						name: 'Default (first group)',
+						name: 'Default (First Group)',
 						value: '',
 					},
 				],

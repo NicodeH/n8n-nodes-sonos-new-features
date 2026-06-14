@@ -69,7 +69,7 @@ export class Sonos implements INodeType {
 					{
 						name: 'Play in Group',
 						value: 'play',
-						description: 'Starts playback on all members of the selected group, or first group by default. Selecting a player will target that player instead.',
+						description: 'Starts playback on all members of the selected group, or first group by default. Selecting a player will target that player instead of the group.',
 					},
 					{
 						name: 'Play Favorite in Group',
@@ -79,22 +79,22 @@ export class Sonos implements INodeType {
 					{
 						name: 'Pause in Group',
 						value: 'pause',
-						description: 'Pauses playback on all members of the selected group, or first group by default. Selecting a player will target that player instead.',
+						description: 'Pauses playback on all members of the selected group, or first group by default. Selecting a player will target that player instead of the group.',
 					},
 					{
 						name: 'Toggle Play/Pause in Group',
 						value: 'togglePlayPause',
-						description: 'Toggles playback on all members of the selected group, or first group by default. Selecting a player will target that player instead.',
+						description: 'Toggles playback on all members of the selected group, or first group by default. Selecting a player will target that player instead of the group.',
 					},
 					{
 						name: 'Skip Song in Group',
 						value: 'skipToNextTrack',
-						description: 'Skips to the next track on all members of the selected group, or first group by default. Selecting a player will target that player instead.',
+						description: 'Skips to the next track on all members of the selected group, or first group by default. Selecting a player will target that player instead of the group.',
 					},
 					{
 						name: 'Previous Song in Group',
 						value: 'skipToPreviousTrack',
-						description: 'Jumps to the previous song on all members of the selected group, or first group by default. Selecting a player will target that player instead.',
+						description: 'Jumps to the previous song on all members of the selected group, or first group by default. Selecting a player will target that player instead of the group.',
 					},
 					{
 						name: 'Group All Players',
@@ -131,7 +131,7 @@ export class Sonos implements INodeType {
 				required: true,
 			},
 			{
-				displayName: 'Group / Member Selection',
+				displayName: 'Group Selection',
 				name: 'group',
 				type: 'options' as NodePropertyTypes,
 				options: [
@@ -142,7 +142,7 @@ export class Sonos implements INodeType {
 				],
 				default: '',
 				description:
-					'Select a group to target all its members, or leave empty to use the first group by default',
+					'Select the group to target, or leave empty to use the first group by default. Selecting a player will override the selected group.',
 				displayOptions: {
 					show: {
 						action: ['play', 'pause', 'togglePlayPause', 'skipToNextTrack', 'skipToPreviousTrack', 'groupVolume'],
@@ -159,7 +159,8 @@ export class Sonos implements INodeType {
 				type: 'options' as NodePropertyTypes,
 				options: [],
 				default: '',
-				description: 'For player-level actions, choose the target player. For playback actions, a player selection overrides the group.',
+				description:
+					'For player-level actions, choose the target player. For group playback actions, selecting a player overrides the selected group and targets that player only.',
 				displayOptions: {
 					show: {
 						action: [
@@ -303,8 +304,8 @@ export class Sonos implements INodeType {
 			loadHouseholds,
 			loadFavorites,
 			loadPlayers,
+			loadGroups,
 			loadAllGroups,
-
 		},
 	};
 

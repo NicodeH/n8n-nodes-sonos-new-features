@@ -166,10 +166,6 @@ export async function loadPlayers(
 ): Promise<INodePropertyOptions[]> {
 	const returnData: INodePropertyOptions[] = [];
 	const action = this.getNodeParameter('action', 0) as string;
-	const group = this.getNodeParameter('group', 0, '') as string;
-	const filterGroupMembers = ['play', 'pause', 'togglePlayPause', 'skipToNextTrack', 'skipToPreviousTrack'].includes(
-		action,
-	);
 
 	let data;
 	try {
@@ -182,25 +178,7 @@ export async function loadPlayers(
 		throw new Error(`SONOS Error: ${err}`);
 	}
 
-	let memberDeviceIds: string[] | undefined;
-	if (filterGroupMembers && data.groups) {
-		let selectedGroupId = group;
-		if (!selectedGroupId || selectedGroupId === FIRST_GROUP) {
-			selectedGroupId = data.groups[0]?.id || '';
-		} else if (selectedGroupId === LAST_GROUP) {
-			selectedGroupId = data.groups[data.groups.length - 1]?.id || '';
-		}
-		const selectedGroup = data.groups.find((groupItem) => groupItem.id === selectedGroupId);
-		memberDeviceIds = selectedGroup?.playerIds;
-	}
-
 	for (const player of data.players!) {
-		if (memberDeviceIds?.length) {
-			const isMember = player.deviceIds?.some((deviceId) => memberDeviceIds?.includes(deviceId));
-			if (!isMember) {
-				continue;
-			}
-		}
 
 		if (action === 'setHomeTheaterOptions' || action === 'loadHomeTheaterPlayback') {
 			if (player.capabilities.includes('HT_PLAYBACK')) {

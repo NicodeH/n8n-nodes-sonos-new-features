@@ -96,7 +96,7 @@ describe('Sonos Node', () => {
 			expect(result[0].value).toEqual('RINCON_1234569');
 		});
 
-		it('Fetches members of the selected group for group actions', async () => {
+		it('Fetches all players for group actions so player selection can override the group', async () => {
 			optionsStub.helpers.requestOAuth2 = jest
 				.fn()
 				.mockImplementation(() => readFileAsync('./test/Sonos/groups.response.json', 'utf-8'));
@@ -106,11 +106,15 @@ describe('Sonos Node', () => {
 
 			const result = await loadPlayers.call(optionsStub);
 
-			expect(result.length).toEqual(2);
+			expect(result.length).toEqual(4);
 			expect(result[0].name).toEqual('Sonos Roam');
 			expect(result[0].value).toEqual('RINCON_123456');
 			expect(result[1].name).toEqual('Sonos Move');
 			expect(result[1].value).toEqual('RINCON_1234567');
+			expect(result[2].name).toEqual('Hometheater Beam');
+			expect(result[2].value).toEqual('RINCON_1234568');
+			expect(result[3].name).toEqual('Hometheater Arc');
+			expect(result[3].value).toEqual('RINCON_1234569');
 		});
 
 		it('Fetches the first group', async () => {

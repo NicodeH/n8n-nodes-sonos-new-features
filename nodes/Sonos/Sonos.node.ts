@@ -32,7 +32,7 @@ export class Sonos implements INodeType {
 		icon: 'file:Sonos.svg',
 		group: ['output'],
 		version: 1,
-		description: 'Control your Sonos system.',
+		description: 'Control your Sonos system',
 		defaults: {
 			name: 'Sonos',
 		},
@@ -56,102 +56,102 @@ export class Sonos implements INodeType {
 					loadOptionsMethod: 'loadHouseholds',
 				},
 			},
-			{
-				displayName: 'Action',
-				name: 'action',
-				type: 'options' as NodePropertyTypes,
-				options: [
-					{
-						name: 'Play Audio Clip',
-						value: 'playAudioClip',
-						description: 'Plays an audio file from a URL on one or more selected players.',
-					},
-					{
-						name: 'Play in Group(s)',
-						value: 'playGroup',
-						description: 'Starts playback on one or more selected groups, or the first group by default.',
-					},
-					{
-						name: 'Play on Player(s)',
-						value: 'playPlayer',
-						description: 'Starts playback on one or more selected players.',
-					},
-					{
-						name: 'Play Favorite in Group',
-						value: 'playFavorite',
-						description: 'Loads a Sonos favorite and plays it on the selected group(s) or the first group by default.',
-					},
-					{
-						name: 'Pause Group(s)',
-						value: 'pauseGroup',
-						description: 'Pauses playback on one or more selected groups, or the first group by default.',
-					},
-					{
-						name: 'Pause Player(s)',
-						value: 'pausePlayer',
-						description: 'Pauses playback on one or more selected players.',
-					},
-					{
-						name: 'Toggle Play/Pause Group(s)',
-						value: 'togglePlayPauseGroup',
-						description: 'Toggles playback on one or more selected groups, or the first group by default.',
-					},
-					{
-						name: 'Toggle Play/Pause Player(s)',
-						value: 'togglePlayPausePlayer',
-						description: 'Toggles playback on one or more selected players.',
-					},
-					{
-						name: 'Skip Song in Group(s)',
-						value: 'skipToNextTrackGroup',
-						description: 'Skips to the next track on one or more selected groups, or the first group by default.',
-					},
-					{
-						name: 'Skip Song on Player(s)',
-						value: 'skipToNextTrackPlayer',
-						description: 'Skips to the next track on one or more selected players.',
-					},
-					{
-						name: 'Previous Song in Group(s)',
-						value: 'skipToPreviousTrackGroup',
-						description: 'Jumps to the previous song on one or more selected groups, or the first group by default.',
-					},
-					{
-						name: 'Previous Song on Player(s)',
-						value: 'skipToPreviousTrackPlayer',
-						description: 'Jumps to the previous song on one or more selected players.',
-					},
-					{
-						name: 'Group All Players',
-						value: 'groupAll',
-						description: 'Groups all players in your system.',
-					},
-					{
-						name: 'Set Group Volume',
-						value: 'groupVolume',
-						description: 'Sets the volume of selected groups, or the first group by default.',
-					},
-					{
-						name: 'Set Home Theater Options',
-						value: 'setHomeTheaterOptions',
-						description: 'Sets the options of your home theater like night mode or enhance dialog.',
-					},
-					{
-						name: 'Start Home Theater Playback',
-						value: 'loadHomeTheaterPlayback',
-						description: 'Starts the home theater playback.',
-					},
-					{
-						name: 'Set TV Power State',
-						value: 'setTVPowerState',
-						description: 'Sets the TV power state.',
-					},
-					{
-						name: 'Get All Groups',
-						value: 'getAllGroups',
-						description: 'Gather all the groups in the household.',
-					},
-				],
+				{
+					displayName: 'Action',
+					name: 'action',
+					type: 'options' as NodePropertyTypes,
+					options: [
+						{
+							name: 'Play Audio Clip',
+							value: 'playAudioClip',
+							description: 'Plays an audio file from a URL on one or more selected players',
+						},
+						{
+							name: 'Play in Group(s)',
+							value: 'playGroup',
+							description: 'Starts playback on one or more selected groups, or the first group by default',
+						},
+						{
+							name: 'Play on Player(s)',
+							value: 'playPlayer',
+							description: 'Starts playback on one or more selected players',
+						},
+						{
+							name: 'Play Favorite in Group',
+							value: 'playFavorite',
+							description: 'Loads a Sonos favorite and plays it on the selected group(s) or the first group by default',
+						},
+						{
+							name: 'Pause Group(s)',
+							value: 'pauseGroup',
+							description: 'Pauses playback on one or more selected groups, or the first group by default',
+						},
+						{
+							name: 'Pause Player(s)',
+							value: 'pausePlayer',
+							description: 'Pauses playback on one or more selected players',
+						},
+						{
+							name: 'Toggle Play/Pause Group(s)',
+							value: 'togglePlayPauseGroup',
+							description: 'Toggles playback on one or more selected groups, or the first group by default',
+						},
+						{
+							name: 'Toggle Play/Pause Player(s)',
+							value: 'togglePlayPausePlayer',
+							description: 'Toggles playback on one or more selected players',
+						},
+						{
+							name: 'Skip Song in Group(s)',
+							value: 'skipToNextTrackGroup',
+							description: 'Skips to the next track on one or more selected groups, or the first group by default',
+						},
+						{
+							name: 'Skip Song on Player(s)',
+							value: 'skipToNextTrackPlayer',
+							description: 'Skips to the next track on one or more selected players',
+						},
+						{
+							name: 'Previous Song in Group(s)',
+							value: 'skipToPreviousTrackGroup',
+							description: 'Jumps to the previous song on one or more selected groups, or the first group by default',
+						},
+						{
+							name: 'Previous Song on Player(s)',
+							value: 'skipToPreviousTrackPlayer',
+							description: 'Jumps to the previous song on one or more selected players',
+						},
+						{
+							name: 'Group All Players',
+							value: 'groupAll',
+							description: 'Groups all players in your system',
+						},
+						{
+							name: 'Set Group Volume',
+							value: 'groupVolume',
+							description: 'Sets the volume of selected groups, or the first group by default',
+						},
+						{
+							name: 'Set Home Theater Options',
+							value: 'setHomeTheaterOptions',
+							description: 'Sets the options of your home theater like night mode or enhance dialog',
+						},
+						{
+							name: 'Start Home Theater Playback',
+							value: 'loadHomeTheaterPlayback',
+							description: 'Starts the home theater playback',
+						},
+						{
+							name: 'Set TV Power State',
+							value: 'setTVPowerState',
+							description: 'Sets the TV power state',
+						},
+						{
+							name: 'Get All Groups',
+							value: 'getAllGroups',
+							description: 'Gather all the groups in the household',
+						},
+					],
 				default: '',
 				required: true,
 			},

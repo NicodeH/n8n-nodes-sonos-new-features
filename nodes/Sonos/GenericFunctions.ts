@@ -29,22 +29,28 @@ const FIRST_GROUP = 'FIRST_GROUP';
 const LAST_GROUP = 'LAST_GROUP';
 
 export async function playAudioClip(this: IExecuteFunctions): Promise<void> {
-	const player = this.getNodeParameter('player', 0);
-	const options: OptionsWithUri = {
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		method: 'POST',
-		body: JSON.stringify({
-			name: 'n8n',
-			appId: 'com.n8n.sonos',
-			streamUrl: this.getNodeParameter('url', 0),
-			clipType: 'CUSTOM',
-			volume: this.getNodeParameter('volume', 0),
-		}),
-		uri: 'https://api.ws.sonos.com/control/api/v1/players/' + player + '/audioClip',
-	};
-	await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	const playerIds = (this.getNodeParameter('players', 0) as string[]) ?? [];
+	if (!playerIds.length) {
+		throw new Error('Please select at least one player for the audio clip.');
+	}
+	const body = JSON.stringify({
+		name: 'n8n',
+		appId: 'com.n8n.sonos',
+		streamUrl: this.getNodeParameter('url', 0),
+		clipType: 'CUSTOM',
+		volume: this.getNodeParameter('volume', 0),
+	});
+	for (const playerId of playerIds) {
+		const options: OptionsWithUri = {
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			method: 'POST',
+			body,
+			uri: 'https://api.ws.sonos.com/control/api/v1/players/' + playerId + '/audioClip',
+		};
+		await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	}
 }
 
 export async function groupAll(this: IExecuteFunctions): Promise<void> {
@@ -64,74 +70,128 @@ export async function groupAll(this: IExecuteFunctions): Promise<void> {
 	await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
 }
 
-export async function executeGroupAction(this: IExecuteFunctions, action: string): Promise<void> {
-	const selectedPlayerId = this.getNodeParameter('player', 0, '') as string;
-	if (selectedPlayerId) {
+export async function executePlaybackAction(
+	this: IExecuteFunctions,
+	action: string,
+	target: 'group' | 'player',
+): Promise<void> {
+	if (target === 'player') {
+		const selectedPlayerIds = (this.getNodeParameter('players', 0) as string[]) ?? [];
+		if (!selectedPlayerIds.length) {
+			throw new Error('Please select at least one player.');
+		}
+		for (const playerId of selectedPlayerIds) {
+			const options: OptionsWithUri = {
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				method: 'POST',
+				uri: 'https://api.ws.sonos.com/control/api/v1/players/' + playerId + '/playback/' + action,
+			};
+			await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+		}
+		return;
+	}
+
+	let selectedGroupIds = (this.getNodeParameter('groups', 0) as string[]) ?? [];
+	if (!selectedGroupIds.length) {
+		selectedGroupIds = [FIRST_GROUP];
+	}
+
+	const groups: string[] = [];
+	for (const selectedGroupId of selectedGroupIds) {
+		if (selectedGroupId === FIRST_GROUP) {
+			const firstGroupId = await getFirstGroup.call(this);
+			if (firstGroupId) {
+				groups.push(firstGroupId);
+			}
+		} else if (selectedGroupId === LAST_GROUP) {
+			const lastGroupId = await getLastGroup.call(this);
+			if (lastGroupId) {
+				groups.push(lastGroupId);
+			}
+		} else {
+			groups.push(selectedGroupId);
+		}
+	}
+
+	if (!groups.length) {
+		throw new Error('No group available for the selected household.');
+	}
+
+	for (const groupId of Array.from(new Set(groups))) {
 		const options: OptionsWithUri = {
 			headers: {
 				'Content-Type': 'application/json',
 			},
 			method: 'POST',
-			uri: 'https://api.ws.sonos.com/control/api/v1/players/' + selectedPlayerId + '/playback/' + action,
+			uri: 'https://api.ws.sonos.com/control/api/v1/groups/' + groupId + '/playback/' + action,
 		};
 		await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
-		return;
 	}
-
-	// Use the group selected by the user, or fall back to the first group
-	const selectedGroupId = this.getNodeParameter('group', 0, '') as string;
-	let groupId = selectedGroupId || FIRST_GROUP;
-	if (groupId === FIRST_GROUP) {
-		groupId = await getFirstGroup.call(this);
-	} else if (groupId === LAST_GROUP) {
-		groupId = await getLastGroup.call(this);
-	}
-
-	const options: OptionsWithUri = {
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		method: 'POST',
-		uri: 'https://api.ws.sonos.com/control/api/v1/groups/' + groupId + '/playback/' + action,
-	};
-	await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
 }
 
 export async function playFavorite(this: IExecuteFunctions): Promise<void> {
-	const firstGroupId = await getFirstGroup.call(this);
-	const options: OptionsWithUri = {
-		headers: {
-			'Content-Type': 'application/json',
+	const selectedGroupIds = this.getNodeParameter('groups', 0, []) as string[];
+	const groupIds = selectedGroupIds.length ? selectedGroupIds : [FIRST_GROUP];
+	const body = JSON.stringify({
+		action: 'replace',
+		playOnCompletion: true,
+		favoriteId: this.getNodeParameter('favorite', 0),
+		playModes: {
+			shuffle: this.getNodeParameter('shuffle', 0),
+			repeat: this.getNodeParameter('repeat', 0),
+			crossfade: this.getNodeParameter('crossfade', 0),
 		},
-		body: JSON.stringify({
-			action: 'replace',
-			playOnCompletion: true,
-			favoriteId: this.getNodeParameter('favorite', 0),
-			playModes: {
-				shuffle: this.getNodeParameter('shuffle', 0),
-				repeat: this.getNodeParameter('repeat', 0),
-				crossfade: this.getNodeParameter('crossfade', 0),
+	});
+	for (const selectedGroupId of groupIds) {
+		let groupId = selectedGroupId;
+		if (groupId === FIRST_GROUP) {
+			groupId = await getFirstGroup.call(this);
+		} else if (groupId === LAST_GROUP) {
+			groupId = await getLastGroup.call(this);
+		}
+		if (!groupId) {
+			throw new Error('No group available for the selected household.');
+		}
+		const options: OptionsWithUri = {
+			headers: {
+				'Content-Type': 'application/json',
 			},
-		}),
-		method: 'POST',
-		uri: 'https://api.ws.sonos.com/control/api/v1/groups/' + firstGroupId + '/favorites',
-	};
-	await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+			body,
+			method: 'POST',
+			uri: 'https://api.ws.sonos.com/control/api/v1/groups/' + groupId + '/favorites',
+		};
+		await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	}
 }
 
 export async function setGroupVolume(this: IExecuteFunctions): Promise<void> {
-	const firstGroupId = await getFirstGroup.call(this);
-	const options: OptionsWithUri = {
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		body: JSON.stringify({
-			volume: this.getNodeParameter('volume', 0),
-		}),
-		method: 'POST',
-		uri: 'https://api.ws.sonos.com/control/api/v1/groups/' + firstGroupId + '/groupVolume',
-	};
-	await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	const selectedGroupIds = this.getNodeParameter('groups', 0, []) as string[];
+	const groupIds = selectedGroupIds.length ? selectedGroupIds : [FIRST_GROUP];
+	const body = JSON.stringify({
+		volume: this.getNodeParameter('volume', 0),
+	});
+	for (const selectedGroupId of groupIds) {
+		let groupId = selectedGroupId;
+		if (groupId === FIRST_GROUP) {
+			groupId = await getFirstGroup.call(this);
+		} else if (groupId === LAST_GROUP) {
+			groupId = await getLastGroup.call(this);
+		}
+		if (!groupId) {
+			throw new Error('No group available for the selected household.');
+		}
+		const options: OptionsWithUri = {
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			body,
+			method: 'POST',
+			uri: 'https://api.ws.sonos.com/control/api/v1/groups/' + groupId + '/groupVolume',
+		};
+		await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	}
 }
 
 export async function callSonosApi(
@@ -250,20 +310,17 @@ export async function loadAllGroups(
 	this: ILoadOptionsFunctions | IExecuteFunctions,
 ): Promise<INodePropertyOptions[]> {
 	const groups = await getGroups.call(this);
-	const returnData: INodePropertyOptions[] = [
-		{
-			name: 'Default (First Group)',
-			value: '',
-		},
-		{
-			name: 'First Group',
+	const returnData: INodePropertyOptions[] = [];
+	if (groups.length) {
+		returnData.push({
+			name: `${groups[0].name ?? groups[0].id} (Default)`,
 			value: FIRST_GROUP,
-		},
-		{
+		});
+		returnData.push({
 			name: 'Last Group',
 			value: LAST_GROUP,
-		},
-	];
+		});
+	}
 
 	returnData.push(
 		...groups.map((group) => ({
@@ -328,47 +385,62 @@ export async function loadFavorites(this: ILoadOptionsFunctions): Promise<INodeP
 }
 
 export async function setTVPowerState(this: IExecuteFunctions): Promise<void> {
-	const player = this.getNodeParameter('player', 0);
+	const playerIds = (this.getNodeParameter('players', 0) as string[]) ?? [];
+	if (!playerIds.length) {
+		throw new Error('Please select at least one player.');
+	}
 	const tvPowerState = this.getNodeParameter('tvPowerState', 0);
-	const options: OptionsWithUri = {
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		method: 'POST',
-		body: JSON.stringify({
-			tvPowerState: tvPowerState ? 'ON' : 'STANDBY',
-		}),
-		uri: 'https://api.ws.sonos.com/control/api/v1/players/' + player + '/homeTheater/tvPowerState',
-	};
-	await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	for (const playerId of playerIds) {
+		const options: OptionsWithUri = {
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			method: 'POST',
+			body: JSON.stringify({
+				tvPowerState: tvPowerState ? 'ON' : 'STANDBY',
+			}),
+			uri: 'https://api.ws.sonos.com/control/api/v1/players/' + playerId + '/homeTheater/tvPowerState',
+		};
+		await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	}
 }
 
 export async function loadHomeTheaterPlayback(this: IExecuteFunctions): Promise<void> {
-	const player = this.getNodeParameter('player', 0);
-	const options: OptionsWithUri = {
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		method: 'POST',
-		uri: 'https://api.ws.sonos.com/control/api/v1/players/' + player + '/homeTheater',
-	};
-	await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	const playerIds = (this.getNodeParameter('players', 0) as string[]) ?? [];
+	if (!playerIds.length) {
+		throw new Error('Please select at least one player.');
+	}
+	for (const playerId of playerIds) {
+		const options: OptionsWithUri = {
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			method: 'POST',
+			uri: 'https://api.ws.sonos.com/control/api/v1/players/' + playerId + '/homeTheater',
+		};
+		await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	}
 }
 
 export async function setHomeTheaterOptions(this: IExecuteFunctions): Promise<void> {
-	const player = this.getNodeParameter('player', 0);
+	const playerIds = (this.getNodeParameter('players', 0) as string[]) ?? [];
+	if (!playerIds.length) {
+		throw new Error('Please select at least one player.');
+	}
 	const nightMode = this.getNodeParameter('nightMode', 0);
 	const enhanceDialog = this.getNodeParameter('enhanceDialog', 0);
-	const options: OptionsWithUri = {
-		headers: {
-			'Content-Type': 'application/json',
-		},
-		method: 'POST',
-		body: JSON.stringify({
-			enhanceDialog,
-			nightMode,
-		}),
-		uri: 'https://api.ws.sonos.com/control/api/v1/players/' + player + '/homeTheater/options',
-	};
-	await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	for (const playerId of playerIds) {
+		const options: OptionsWithUri = {
+			headers: {
+				'Content-Type': 'application/json',
+			},
+			method: 'POST',
+			body: JSON.stringify({
+				enhanceDialog,
+				nightMode,
+			}),
+			uri: 'https://api.ws.sonos.com/control/api/v1/players/' + playerId + '/homeTheater/options',
+		};
+		await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
+	}
 }

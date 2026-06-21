@@ -9,7 +9,7 @@ import {
 	NodePropertyTypes,
 } from 'n8n-workflow';
 import {
-	executeGroupAction,
+	executePlaybackAction,
 	getGroups,
 	groupAll,
 	loadAllGroups,
@@ -64,88 +64,116 @@ export class Sonos implements INodeType {
 					{
 						name: 'Play Audio Clip',
 						value: 'playAudioClip',
-						description: 'Plays an audio file from a URL on one of your players',
+						description: 'Plays an audio file from a URL on one or more selected players.',
 					},
 					{
-						name: 'Play in Group',
-						value: 'play',
-						description: 'Starts playback on all members of the selected group, or first group by default. Selecting a player will target that player instead of the group.',
+						name: 'Play in Group(s)',
+						value: 'playGroup',
+						description: 'Starts playback on one or more selected groups, or the first group by default.',
+					},
+					{
+						name: 'Play on Player(s)',
+						value: 'playPlayer',
+						description: 'Starts playback on one or more selected players.',
 					},
 					{
 						name: 'Play Favorite in Group',
 						value: 'playFavorite',
-						description: 'Loads a Sonos favorite and plays it on the first group found in your Sonos system',
+						description: 'Loads a Sonos favorite and plays it on the selected group(s) or the first group by default.',
 					},
 					{
-						name: 'Pause in Group',
-						value: 'pause',
-						description: 'Pauses playback on all members of the selected group, or first group by default. Selecting a player will target that player instead of the group.',
+						name: 'Pause Group(s)',
+						value: 'pauseGroup',
+						description: 'Pauses playback on one or more selected groups, or the first group by default.',
 					},
 					{
-						name: 'Toggle Play/Pause in Group',
-						value: 'togglePlayPause',
-						description: 'Toggles playback on all members of the selected group, or first group by default. Selecting a player will target that player instead of the group.',
+						name: 'Pause Player(s)',
+						value: 'pausePlayer',
+						description: 'Pauses playback on one or more selected players.',
 					},
 					{
-						name: 'Skip Song in Group',
-						value: 'skipToNextTrack',
-						description: 'Skips to the next track on all members of the selected group, or first group by default. Selecting a player will target that player instead of the group.',
+						name: 'Toggle Play/Pause Group(s)',
+						value: 'togglePlayPauseGroup',
+						description: 'Toggles playback on one or more selected groups, or the first group by default.',
 					},
 					{
-						name: 'Previous Song in Group',
-						value: 'skipToPreviousTrack',
-						description: 'Jumps to the previous song on all members of the selected group, or first group by default. Selecting a player will target that player instead of the group.',
+						name: 'Toggle Play/Pause Player(s)',
+						value: 'togglePlayPausePlayer',
+						description: 'Toggles playback on one or more selected players.',
+					},
+					{
+						name: 'Skip Song in Group(s)',
+						value: 'skipToNextTrackGroup',
+						description: 'Skips to the next track on one or more selected groups, or the first group by default.',
+					},
+					{
+						name: 'Skip Song on Player(s)',
+						value: 'skipToNextTrackPlayer',
+						description: 'Skips to the next track on one or more selected players.',
+					},
+					{
+						name: 'Previous Song in Group(s)',
+						value: 'skipToPreviousTrackGroup',
+						description: 'Jumps to the previous song on one or more selected groups, or the first group by default.',
+					},
+					{
+						name: 'Previous Song on Player(s)',
+						value: 'skipToPreviousTrackPlayer',
+						description: 'Jumps to the previous song on one or more selected players.',
 					},
 					{
 						name: 'Group All Players',
 						value: 'groupAll',
-						description: 'Groups all players in your system',
+						description: 'Groups all players in your system.',
 					},
 					{
 						name: 'Set Group Volume',
 						value: 'groupVolume',
-						description: 'Sets the volume of the selected group, or first group by default',
+						description: 'Sets the volume of selected groups, or the first group by default.',
 					},
 					{
 						name: 'Set Home Theater Options',
 						value: 'setHomeTheaterOptions',
-						description: 'Sets the options of your home theater like night mode or enhance dialog',
+						description: 'Sets the options of your home theater like night mode or enhance dialog.',
 					},
 					{
 						name: 'Start Home Theater Playback',
 						value: 'loadHomeTheaterPlayback',
-						description: 'Starts the home theater playback',
+						description: 'Starts the home theater playback.',
 					},
 					{
 						name: 'Set TV Power State',
 						value: 'setTVPowerState',
-						description: 'Sets the TV power state',
+						description: 'Sets the TV power state.',
 					},
 					{
 						name: 'Get All Groups',
 						value: 'getAllGroups',
-						description: 'Gather all the groups in the household',
+						description: 'Gather all the groups in the household.',
 					},
 				],
 				default: '',
 				required: true,
 			},
 			{
-				displayName: 'Group Selection',
-				name: 'group',
-				type: 'options' as NodePropertyTypes,
-				options: [
-					{
-						name: 'Default (First Group)',
-						value: '',
-					},
-				],
-				default: '',
+				displayName: 'Group(s)',
+				name: 'groups',
+				type: 'multiOptions' as NodePropertyTypes,
+				options: [],
+				default: [],
 				description:
-					'Select the group to target, or leave empty to use the first group by default. Selecting a player will override the selected group.',
+					'Select one or more groups to target. Leave empty to use the first group by default.',
 				displayOptions: {
 					show: {
-						action: ['play', 'pause', 'togglePlayPause', 'skipToNextTrack', 'skipToPreviousTrack', 'groupVolume'],
+						action: [
+							'playGroup',
+							'pauseGroup',
+							'togglePlayPauseGroup',
+							'skipToNextTrackGroup',
+							'skipToPreviousTrackGroup',
+							'groupVolume',
+							'playFavorite',
+						],
 					},
 				},
 				typeOptions: {
@@ -154,13 +182,13 @@ export class Sonos implements INodeType {
 				},
 			},
 			{
-				displayName: 'Player',
-				name: 'player',
-				type: 'options' as NodePropertyTypes,
+				displayName: 'Player(s)',
+				name: 'players',
+				type: 'multiOptions' as NodePropertyTypes,
 				options: [],
-				default: '',
+				default: [],
 				description:
-					'For player-level actions, choose the target player. For group playback actions, selecting a player overrides the selected group and targets that player only.',
+					'For player-level actions, choose one or more target players. For group-level actions, this field is hidden.',
 				displayOptions: {
 					show: {
 						action: [
@@ -168,11 +196,11 @@ export class Sonos implements INodeType {
 							'setHomeTheaterOptions',
 							'loadHomeTheaterPlayback',
 							'setTVPowerState',
-							'play',
-							'pause',
-							'togglePlayPause',
-							'skipToNextTrack',
-							'skipToPreviousTrack',
+							'playPlayer',
+							'pausePlayer',
+							'togglePlayPausePlayer',
+							'skipToNextTrackPlayer',
+							'skipToPreviousTrackPlayer',
 						],
 					},
 				},
@@ -324,12 +352,35 @@ export class Sonos implements INodeType {
 				case 'groupAll':
 					await groupAll.call(this);
 					break;
-				case 'play':
-				case 'pause':
-				case 'togglePlayPause':
-				case 'skipToNextTrack':
-				case 'skipToPreviousTrack':
-					await executeGroupAction.call(this, action);
+				case 'playGroup':
+					await executePlaybackAction.call(this, 'play', 'group');
+					break;
+				case 'pauseGroup':
+					await executePlaybackAction.call(this, 'pause', 'group');
+					break;
+				case 'togglePlayPauseGroup':
+					await executePlaybackAction.call(this, 'togglePlayPause', 'group');
+					break;
+				case 'skipToNextTrackGroup':
+					await executePlaybackAction.call(this, 'skipToNextTrack', 'group');
+					break;
+				case 'skipToPreviousTrackGroup':
+					await executePlaybackAction.call(this, 'skipToPreviousTrack', 'group');
+					break;
+				case 'playPlayer':
+					await executePlaybackAction.call(this, 'play', 'player');
+					break;
+				case 'pausePlayer':
+					await executePlaybackAction.call(this, 'pause', 'player');
+					break;
+				case 'togglePlayPausePlayer':
+					await executePlaybackAction.call(this, 'togglePlayPause', 'player');
+					break;
+				case 'skipToNextTrackPlayer':
+					await executePlaybackAction.call(this, 'skipToNextTrack', 'player');
+					break;
+				case 'skipToPreviousTrackPlayer':
+					await executePlaybackAction.call(this, 'skipToPreviousTrack', 'player');
 					break;
 				case 'playFavorite':
 					await playFavorite.call(this);

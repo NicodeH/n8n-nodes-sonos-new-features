@@ -229,7 +229,10 @@ export async function loadPlayers(
 
 	let data;
 	try {
-		const household = this.getNodeParameter('household', 0);
+		const household = this.getNodeParameter('household', 0) as string;
+		if (!household) {
+			return returnData;
+		}
 		data = await callSonosApi.call(this, 'GET', `/households/${household}/groups`);
 	} catch (err) {
 		if (err.message === 'No credentials got returned!') {
@@ -273,7 +276,10 @@ export async function getGroups(
 	let data;
 
 	try {
-		const household = this.getNodeParameter('household', 0);
+		const household = this.getNodeParameter('household', 0) as string;
+		if (!household) {
+			return [];
+		}
 		data = await callSonosApi.call(this, 'GET', `/households/${household}/groups`);
 	} catch (err) {
 		if (err.message === 'No credentials got returned!') {
@@ -362,7 +368,10 @@ export async function loadHouseholds(this: ILoadOptionsFunctions): Promise<INode
 
 export async function loadFavorites(this: ILoadOptionsFunctions): Promise<INodePropertyOptions[]> {
 	const returnData: INodePropertyOptions[] = [];
-	const household = this.getNodeParameter('household', 0);
+	const household = this.getNodeParameter('household', 0) as string;
+	if (!household) {
+		return returnData;
+	}
 
 	let data;
 	try {

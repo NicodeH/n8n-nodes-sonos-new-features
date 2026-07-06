@@ -234,6 +234,10 @@ export async function loadPlayers(
 			return returnData;
 		}
 		data = await callSonosApi.call(this, 'GET', `/households/${household}/groups`);
+		if ((!data.players || !data.players.length) && typeof household === 'string' && household.length) {
+			const fallback = await callSonosApi.call(this, 'GET', `/households/${household}/players`);
+			data.players = fallback.players ?? [];
+		}
 	} catch (err) {
 		if (err.message === 'No credentials got returned!') {
 			return returnData;
@@ -241,7 +245,7 @@ export async function loadPlayers(
 		throw new Error(`SONOS Error: ${err}`);
 	}
 
-	for (const player of data.players!) {
+	for (const player of data.players ?? []) {
 
 		if (action === 'setHomeTheaterOptions' || action === 'loadHomeTheaterPlayback') {
 			if (player.capabilities.includes('HT_PLAYBACK')) {
@@ -317,23 +321,32 @@ export async function loadAllGroups(
 ): Promise<INodePropertyOptions[]> {
 	const groups = await getGroups.call(this);
 	const returnData: INodePropertyOptions[] = [];
-	if (groups.length) {
+	const seenNames = new Set<string>();
+	if (groups.length > 1) {
+		const defaultName = `${groups[0].name ?? groups[0].id} (Default)`;
 		returnData.push({
-			name: `${groups[0].name ?? groups[0].id} (Default)`,
+			name: defaultName,
 			value: FIRST_GROUP,
 		});
+		seenNames.add(defaultName);
 		returnData.push({
 			name: 'Last Group',
 			value: LAST_GROUP,
 		});
+		seenNames.add('Last Group');
 	}
 
-	returnData.push(
-		...groups.map((group) => ({
-			name: group.name ?? group.id,
+	for (const group of groups) {
+		const name = group.name ?? group.id;
+		if (seenNames.has(name)) {
+			continue;
+		}
+		seenNames.add(name);
+		returnData.push({
+			name,
 			value: group.id,
-		})),
-	);
+		});
+	}
 
 	return returnData;
 }

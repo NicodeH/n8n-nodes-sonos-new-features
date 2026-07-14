@@ -21,8 +21,8 @@ import {
 	playAudioClip,
 	playFavorite,
 	setGroupVolume,
-	setPlayerVolume,
 	setHomeTheaterOptions,
+	setPlayerVolume,
 	setTVPowerState,
 } from './GenericFunctions';
 

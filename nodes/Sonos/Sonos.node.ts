@@ -21,6 +21,7 @@ import {
 	playAudioClip,
 	playFavorite,
 	setGroupVolume,
+	setPlayerVolume,
 	setHomeTheaterOptions,
 	setTVPowerState,
 } from './GenericFunctions';
@@ -62,9 +63,14 @@ export class Sonos implements INodeType {
 					type: 'options' as NodePropertyTypes,
 					options: [
 						{
-							name: 'Play Audio Clip',
-							value: 'playAudioClip',
-							description: 'Plays an audio file from a URL on one or more selected players',
+							name: 'Play Audio Clip on Player(s)',
+							value: 'playAudioClipPlayer',
+							description: 'Plays an audio clip from a URL on one or more selected players',
+						},
+						{
+							name: 'Play Audio Clip on Group(s)',
+							value: 'playAudioClipGroup',
+							description: 'Plays an audio clip from a URL on one or more selected groups',
 						},
 						{
 							name: 'Play in Group(s)',
@@ -77,9 +83,14 @@ export class Sonos implements INodeType {
 							description: 'Starts playback on one or more selected players',
 						},
 						{
-							name: 'Play Favorite in Group',
-							value: 'playFavorite',
-							description: 'Loads a Sonos favorite and plays it on the selected group(s) or the first group by default',
+							name: 'Play Favorite on Group(s)',
+							value: 'playFavoriteGroup',
+							description: 'Loads a Sonos favorite and plays it on one or more selected groups',
+						},
+						{
+							name: 'Play Favorite on Player(s)',
+							value: 'playFavoritePlayer',
+							description: 'Loads a Sonos favorite and plays it on one or more selected players',
 						},
 						{
 							name: 'Pause Group(s)',
@@ -124,12 +135,17 @@ export class Sonos implements INodeType {
 						{
 							name: 'Group All Players',
 							value: 'groupAll',
-							description: 'Groups all players in your system',
+							description: 'Creates a group using all players available in the selected household',
 						},
 						{
 							name: 'Set Group Volume',
-							value: 'groupVolume',
-							description: 'Sets the volume of selected groups, or the first group by default',
+							value: 'setGroupVolume',
+							description: 'Sets the volume of one or more selected groups, or uses the first group by default',
+						},
+						{
+							name: 'Set Player Volume',
+							value: 'setPlayerVolume',
+							description: 'Sets the volume of one or more selected players',
 						},
 						{
 							name: 'Set Home Theater Options',
@@ -147,9 +163,9 @@ export class Sonos implements INodeType {
 							description: 'Sets the TV power state',
 						},
 						{
-							name: 'Get All Groups',
+							name: 'List All Groups',
 							value: 'getAllGroups',
-							description: 'Gather all the groups in the household',
+							description: 'Returns all Sonos groups available in the selected household',
 						},
 					],
 				default: '',
@@ -171,8 +187,9 @@ export class Sonos implements INodeType {
 							'togglePlayPauseGroup',
 							'skipToNextTrackGroup',
 							'skipToPreviousTrackGroup',
-							'groupVolume',
-							'playFavorite',
+							'setGroupVolume',
+							'playFavoriteGroup',
+							'playAudioClipGroup',
 						],
 					},
 				},
@@ -192,7 +209,7 @@ export class Sonos implements INodeType {
 				displayOptions: {
 					show: {
 						action: [
-							'playAudioClip',
+							'playAudioClipPlayer',
 							'setHomeTheaterOptions',
 							'loadHomeTheaterPlayback',
 							'setTVPowerState',
@@ -201,6 +218,8 @@ export class Sonos implements INodeType {
 							'togglePlayPausePlayer',
 							'skipToNextTrackPlayer',
 							'skipToPreviousTrackPlayer',
+							'playFavoritePlayer',
+							'setPlayerVolume',
 						],
 					},
 				},
@@ -218,7 +237,7 @@ export class Sonos implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						action: ['playFavorite'],
+						action: ['playFavoriteGroup', 'playFavoritePlayer', 'playFavorite'],
 					},
 				},
 				typeOptions: {
@@ -234,7 +253,7 @@ export class Sonos implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						action: ['playFavorite'],
+						action: ['playFavoriteGroup', 'playFavoritePlayer', 'playFavorite'],
 					},
 				},
 			},
@@ -246,7 +265,7 @@ export class Sonos implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						action: ['playFavorite'],
+						action: ['playFavoriteGroup', 'playFavoritePlayer', 'playFavorite'],
 					},
 				},
 			},
@@ -263,7 +282,17 @@ export class Sonos implements INodeType {
 				},
 				displayOptions: {
 					show: {
-						action: ['playAudioClip', 'groupVolume'],
+						action: [
+							'playAudioClipPlayer',
+							'playAudioClipGroup',
+							'playAudioClip',
+							'playGroup',
+							'playPlayer',
+							'setGroupVolume',
+							'groupVolume',
+							'setPlayerVolume',
+							'playerVolume',
+						],
 					},
 				},
 			},
@@ -275,7 +304,7 @@ export class Sonos implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						action: ['playAudioClip'],
+						action: ['playAudioClipPlayer', 'playAudioClipGroup', 'playAudioClip'],
 					},
 				},
 			},
@@ -287,7 +316,7 @@ export class Sonos implements INodeType {
 				required: true,
 				displayOptions: {
 					show: {
-						action: ['playFavorite'],
+						action: ['playFavoriteGroup', 'playFavoritePlayer', 'playFavorite'],
 					},
 				},
 			},
@@ -347,7 +376,11 @@ export class Sonos implements INodeType {
 			const action = this.getNodeParameter('action', 0);
 			switch (action) {
 				case 'playAudioClip':
-					await playAudioClip.call(this);
+				case 'playAudioClipPlayer':
+					await playAudioClip.call(this, 'player');
+					break;
+				case 'playAudioClipGroup':
+					await playAudioClip.call(this, 'group');
 					break;
 				case 'groupAll':
 					await groupAll.call(this);
@@ -383,10 +416,19 @@ export class Sonos implements INodeType {
 					await executePlaybackAction.call(this, 'skipToPreviousTrack', 'player');
 					break;
 				case 'playFavorite':
-					await playFavorite.call(this);
+				case 'playFavoriteGroup':
+					await playFavorite.call(this, 'group');
+					break;
+				case 'playFavoritePlayer':
+					await playFavorite.call(this, 'player');
 					break;
 				case 'groupVolume':
+				case 'setGroupVolume':
 					await setGroupVolume.call(this);
+					break;
+				case 'playerVolume':
+				case 'setPlayerVolume':
+					await setPlayerVolume.call(this);
 					break;
 				case 'setTVPowerState':
 					await setTVPowerState.call(this);

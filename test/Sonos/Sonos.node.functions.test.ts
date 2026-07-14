@@ -306,6 +306,69 @@ describe('Sonos Node', () => {
 			);
 		});
 
+		it('Plays an Audio Clip on a Group', async () => {
+			nodeParameters['action'] = 'playAudioClipGroup';
+			let callOptions: OptionsWithUrl | any = {};
+			nodeParameters['groups'] = ['RINCON_1234567:1234'];
+			nodeParameters['url'] = 'https://group-url';
+			nodeParameters['volume'] = 30;
+			executeStub.helpers.requestOAuth2 = jest.fn().mockImplementation((...args: any[]) => {
+				callOptions = args[1];
+				return readFileAsync('./test/Sonos/playAudioClip.response.json', 'utf-8');
+			});
+			const result = await node.execute.apply(executeStub);
+			const executionResponse = result[0][0] as any;
+			expect(executionResponse?.json[0].message).toEqual('ok');
+
+			const responseBody = JSON.parse(callOptions.body);
+			expect(responseBody.streamUrl).toEqual('https://group-url');
+			expect(responseBody.volume).toEqual(30);
+			expect(callOptions.uri).toEqual(
+				'https://api.ws.sonos.com/control/api/v1/groups/RINCON_1234567:1234/audioClip',
+			);
+		});
+
+		it('Plays a Favorite on a Player', async () => {
+			nodeParameters['action'] = 'playFavoritePlayer';
+			let callOptions: OptionsWithUrl | any = {};
+			nodeParameters['players'] = ['RINCON_1234568'];
+			nodeParameters['favorite'] = 'favorite-1';
+			nodeParameters['shuffle'] = false;
+			nodeParameters['repeat'] = false;
+			nodeParameters['crossfade'] = false;
+			executeStub.helpers.requestOAuth2 = jest.fn().mockImplementation((...args: any[]) => {
+				callOptions = args[1];
+				return '{}';
+			});
+			const result = await node.execute.apply(executeStub);
+			const executionResponse = result[0][0] as any;
+			expect(executionResponse?.json[0].message).toEqual('ok');
+
+			const responseBody = JSON.parse(callOptions.body);
+			expect(responseBody.favoriteId).toEqual('favorite-1');
+			expect(callOptions.uri).toEqual(
+				'https://api.ws.sonos.com/control/api/v1/players/RINCON_1234568/favorites',
+			);
+		});
+
+		it('Sets Player Volume', async () => {
+			nodeParameters['action'] = 'playerVolume';
+			let callOptions: OptionsWithUrl | any = {};
+			nodeParameters['players'] = ['RINCON_1234568'];
+			nodeParameters['volume'] = 42;
+			executeStub.helpers.requestOAuth2 = jest.fn().mockImplementation((...args: any[]) => {
+				callOptions = args[1];
+				return '{}';
+			});
+			const result = await node.execute.apply(executeStub);
+			const executionResponse = result[0][0] as any;
+			expect(executionResponse?.json[0].message).toEqual('ok');
+			expect(callOptions.body).toEqual(JSON.stringify({ volume: 42 }));
+			expect(callOptions.uri).toEqual(
+				'https://api.ws.sonos.com/control/api/v1/players/RINCON_1234568/volume',
+			);
+		});
+
 		it('Groups all Players', async () => {
 			nodeParameters['action'] = 'groupAll';
 			let callOptions: OptionsWithUrl | any = {};
@@ -386,6 +449,50 @@ describe('Sonos Node', () => {
 			expect(executionResponse?.json[0].message).toEqual('ok');
 
 			expect(callOptions.uri).toEqual(
+				'https://api.ws.sonos.com/control/api/v1/players/RINCON_1234568/playback/play',
+			);
+		});
+
+		it('Applies a volume before starting playback on a group', async () => {
+			nodeParameters['action'] = 'playGroup';
+			nodeParameters['household'] = 'HOUSEHOLD_1';
+			nodeParameters['groups'] = ['RINCON_1234567:1234'];
+			nodeParameters['volume'] = 35;
+			const calls: any[] = [];
+			executeStub.helpers.requestOAuth2 = jest.fn().mockImplementation((...args: any[]) => {
+				calls.push(args[1]);
+				return '{}';
+			});
+
+			await node.execute.apply(executeStub);
+
+			expect(calls[0].uri).toEqual(
+				'https://api.ws.sonos.com/control/api/v1/groups/RINCON_1234567:1234/groupVolume',
+			);
+			expect(calls[0].body).toEqual(JSON.stringify({ volume: 35 }));
+			expect(calls[1].uri).toEqual(
+				'https://api.ws.sonos.com/control/api/v1/groups/RINCON_1234567:1234/playback/play',
+			);
+		});
+
+		it('Applies a volume before starting playback on a player', async () => {
+			nodeParameters['action'] = 'playPlayer';
+			nodeParameters['household'] = 'HOUSEHOLD_1';
+			nodeParameters['players'] = ['RINCON_1234568'];
+			nodeParameters['volume'] = 42;
+			const calls: any[] = [];
+			executeStub.helpers.requestOAuth2 = jest.fn().mockImplementation((...args: any[]) => {
+				calls.push(args[1]);
+				return '{}';
+			});
+
+			await node.execute.apply(executeStub);
+
+			expect(calls[0].uri).toEqual(
+				'https://api.ws.sonos.com/control/api/v1/players/RINCON_1234568/volume',
+			);
+			expect(calls[0].body).toEqual(JSON.stringify({ volume: 42 }));
+			expect(calls[1].uri).toEqual(
 				'https://api.ws.sonos.com/control/api/v1/players/RINCON_1234568/playback/play',
 			);
 		});

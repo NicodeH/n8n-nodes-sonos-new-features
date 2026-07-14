@@ -158,7 +158,7 @@ export async function executePlaybackAction(
 					},
 					method: 'POST',
 					body: JSON.stringify({ volume }),
-					uri: 'https://api.ws.sonos.com/control/api/v1/players/' + playerId + '/volume',
+					uri: 'https://api.ws.sonos.com/control/api/v1/players/' + playerId + '/playerVolume',
 				});
 			}
 			const options: OptionsWithUri = {
@@ -305,7 +305,7 @@ export async function setPlayerVolume(this: IExecuteFunctions): Promise<void> {
 			},
 			body,
 			method: 'POST',
-			uri: 'https://api.ws.sonos.com/control/api/v1/players/' + playerId + '/volume',
+			uri: 'https://api.ws.sonos.com/control/api/v1/players/' + playerId + '/playerVolume',
 		};
 		await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', options);
 	}

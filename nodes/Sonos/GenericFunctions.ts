@@ -232,6 +232,7 @@ export async function playFavorite(this: IExecuteFunctions, target: TargetType =
 			crossfade: this.getNodeParameter('crossfade', 0),
 		},
 	});
+	const volume = this.getNodeParameter('volume', 0, undefined);
 
 	if (target === 'player') {
 		const playerIds = (this.getNodeParameter('players', 0, []) as string[]) ?? [];
@@ -239,6 +240,16 @@ export async function playFavorite(this: IExecuteFunctions, target: TargetType =
 			throw new Error('Please select at least one player.');
 		}
 		for (const playerId of playerIds) {
+			if (typeof volume === 'number') {
+				await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', {
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					method: 'POST',
+					body: JSON.stringify({ volume }),
+					uri: 'https://api.ws.sonos.com/control/api/v1/players/' + playerId + '/playerVolume',
+				});
+			}
 			const options: OptionsWithUri = {
 				headers: {
 					'Content-Type': 'application/json',
@@ -257,6 +268,16 @@ export async function playFavorite(this: IExecuteFunctions, target: TargetType =
 		throw new Error('No group available for the selected household.');
 	}
 	for (const groupId of groupIds) {
+		if (typeof volume === 'number') {
+			await this.helpers.requestOAuth2.call(this, 'sonosOAuth2Api', {
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				method: 'POST',
+				body: JSON.stringify({ volume }),
+				uri: 'https://api.ws.sonos.com/control/api/v1/groups/' + groupId + '/groupVolume',
+			});
+		}
 		const options: OptionsWithUri = {
 			headers: {
 				'Content-Type': 'application/json',

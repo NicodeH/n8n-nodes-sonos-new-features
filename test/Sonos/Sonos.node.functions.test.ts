@@ -328,6 +328,27 @@ describe('Sonos Node', () => {
 			);
 		});
 
+		it('Applies a volume before loading a favorite on a player', async () => {
+			nodeParameters['action'] = 'playFavoritePlayer';
+			nodeParameters['players'] = ['RINCON_1234568'];
+			nodeParameters['favorite'] = 'favorite-1';
+			nodeParameters['shuffle'] = false;
+			nodeParameters['repeat'] = false;
+			nodeParameters['crossfade'] = false;
+			nodeParameters['volume'] = 64;
+			const calls: any[] = [];
+			executeStub.helpers.requestOAuth2 = jest.fn().mockImplementation((...args: any[]) => {
+				calls.push(args[1]);
+				return '{}';
+			});
+
+			await node.execute.apply(executeStub);
+
+			expect(calls[0].uri).toEqual('https://api.ws.sonos.com/control/api/v1/players/RINCON_1234568/playerVolume');
+			expect(calls[0].body).toEqual(JSON.stringify({ volume: 64 }));
+			expect(calls[1].uri).toEqual('https://api.ws.sonos.com/control/api/v1/players/RINCON_1234568/favorites');
+		});
+
 		it('Plays a Favorite on a Player', async () => {
 			nodeParameters['action'] = 'playFavoritePlayer';
 			let callOptions: OptionsWithUrl | any = {};

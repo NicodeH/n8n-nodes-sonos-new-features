@@ -288,6 +288,8 @@ export class Sonos implements INodeType {
 							'playAudioClip',
 							'playGroup',
 							'playPlayer',
+							'playFavoriteGroup',
+							'playFavoritePlayer',
 							'setGroupVolume',
 							'groupVolume',
 							'setPlayerVolume',
